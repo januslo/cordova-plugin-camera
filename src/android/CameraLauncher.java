@@ -702,13 +702,8 @@ public class CameraLauncher extends CordovaPlugin implements MediaScannerConnect
                 this.callbackContext.success(uriString);
             } else {
                 // If we don't have a valid image so quit.
-<<<<<<< HEAD
                 if (!("image/jpg".equalsIgnoreCase(mimeType) || "image/jpeg".equalsIgnoreCase(mimeType) || "image/png".equalsIgnoreCase(mimeType))) {
                     Log.d(LOG_TAG, "I either have a null image path or bitmap");
-=======
-                if (!("image/jpeg".equalsIgnoreCase(mimeType) || "image/png".equalsIgnoreCase(mimeType))) {
-                    LOG.d(LOG_TAG, "I either have a null image path or bitmap");
->>>>>>> apache/master
                     this.failPicture("Unable to retrieve path to picture!");
                     return;
                 }

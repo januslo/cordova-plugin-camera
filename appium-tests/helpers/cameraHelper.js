@@ -1,5 +1,4 @@
-/*jshint node: true */
-/* global Q, resolveLocalFileSystemURI, Camera, cordova */
+/* global Q, resolveLocalFileSystemURL, Camera, cordova */
 /*
  *
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -114,15 +113,23 @@ module.exports.getPicture = function (opts, pid) {
 // calls a callback with 'ERROR: <error message>' if something is wrong
 // note that this function is executed in the context of tested app
 // and not in the context of tests
-module.exports.checkPicture = function (pid, options, cb) {
+module.exports.checkPicture = function (pid, options, skipContentCheck, cb) {
     var isIos = cordova.platformId === "ios";
     var isAndroid = cordova.platformId === "android";
     // skip image type check if it's unmodified on Android:
     // https://github.com/apache/cordova-plugin-camera/#android-quirks-1
-    var skipFileTypeCheck = isAndroid &&
-        options.quality === 100 &&
+    var skipFileTypeCheckAndroid = isAndroid && options.quality === 100 &&
         !options.targetWidth && !options.targetHeight &&
         !options.correctOrientation;
+
+    // Skip image type check if destination is NATIVE_URI and source - device's photoalbum
+    // https://github.com/apache/cordova-plugin-camera/#ios-quirks-1
+    var skipFileTypeCheckiOS = isIos && options.destinationType === Camera.DestinationType.NATIVE_URI &&
+        (options.sourceType === Camera.PictureSourceType.PHOTOLIBRARY ||
+         options.sourceType === Camera.PictureSourceType.SAVEDPHOTOALBUM);
+
+    var skipFileTypeCheck = skipFileTypeCheckAndroid || skipFileTypeCheckiOS;
+
     var desiredType = 'JPEG';
     var mimeType = 'image/jpeg';
     if (options.encodingType === Camera.EncodingType.PNG) {
@@ -161,21 +168,28 @@ module.exports.checkPicture = function (pid, options, cb) {
                 return;
             }
         }
+
         try {
             if (result.indexOf('file:') === 0 ||
                 result.indexOf('content:') === 0 ||
                 result.indexOf('assets-library:') === 0) {
 
-                if (!window.resolveLocalFileSystemURI) {
+                if (!window.resolveLocalFileSystemURL) {
                     errorCallback('Cannot read file. Please install cordova-plugin-file to fix this.');
                     return;
                 }
-                resolveLocalFileSystemURI(result, function (entry) {
+                if (skipContentCheck) {
+                    cb('OK');
+                    return;
+                }
+                resolveLocalFileSystemURL(result, function (entry) {
                     if (skipFileTypeCheck) {
                         displayFile(entry);
                     } else {
                         verifyFile(entry);
                     }
+                }, function (err) {
+                    errorCallback(err);
                 });
             } else {
                 displayImage(result);
